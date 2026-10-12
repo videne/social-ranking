@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Clasament Eficiență Postări</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: bara de filtre sus (perioadă, platformă, cont, format), apoi rezumatul perioadei și clasamentul; formula și fișierele într-o coloană laterală pe desktop, dedesubt pe telefon. */
+:root{
+  --paper:#F2F5F7; --surface:#FFFFFF; --ink:#132029; --muted:#596875; --line:#D8DFE5;
+  --accent:#2445D3; --accent-soft:#E2E8FC; --ig:#B8306F; --tt:#0B807C;
+  --good:#1B7646; --bad:#B23A2C; --warn:#9A6200; --bar:#E7ECF0;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0E151B; --surface:#16202A; --ink:#E5ECF1; --muted:#93A2AF; --line:#283541;
+  --accent:#8FA3FF; --accent-soft:#1E2950; --ig:#F06BA9; --tt:#3BC6C0;
+  --good:#5CC98B; --bad:#F2806F; --warn:#E5B04F; --bar:#22303B; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0E151B; --surface:#16202A; --ink:#E5ECF1; --muted:#93A2AF; --line:#283541;
+  --accent:#8FA3FF; --accent-soft:#1E2950; --ig:#F06BA9; --tt:#3BC6C0;
+  --good:#5CC98B; --bad:#F2806F; --warn:#E5B04F; --bar:#22303B; color-scheme:dark}
+
+*{box-sizing:border-box}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+img{max-width:100%}
+[hidden]{display:none!important}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:20px;padding-block:28px 64px}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+header{display:flex;flex-wrap:wrap;gap:16px 40px;align-items:flex-end;justify-content:space-between;padding-bottom:20px;border-bottom:2px solid var(--ink)}
+h1{font-family:var(--f-display);font-stretch:125%;font-weight:800;font-size:clamp(2rem,5vw,3.2rem);line-height:.95;letter-spacing:-.02em;margin:0;text-wrap:balance}
+h1 span{font-stretch:62%;font-weight:500;color:var(--accent);letter-spacing:0}
+.lede{margin:10px 0 0;color:var(--muted);max-width:60ch}
+.fresh{font-size:13px;color:var(--muted);text-align:right;display:grid;gap:2px}
+.fresh b{color:var(--ink);font-weight:600}
+
+/* filtre */
+.filters{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;padding-block:16px;position:sticky;top:env(safe-area-inset-top,0px);background:var(--paper);z-index:5;border-bottom:1px solid var(--line)}
+.seg{display:inline-flex;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:3px}
+.seg button{border:0;background:transparent;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:14px;color:var(--muted);white-space:nowrap}
+.seg button:hover{color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.seg.period button[aria-pressed="true"]{background:var(--accent);color:var(--surface)}
+.sel{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.sel select{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px;font-size:14px;color:var(--ink);max-width:100%}
+.range{font-size:13px;color:var(--muted);margin-left:auto}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:28px;margin-top:22px;align-items:start}
+@media (max-width:1000px){.grid{grid-template-columns:minmax(0,1fr)}}
+aside{display:grid;gap:18px}
+main{display:grid;gap:18px;min-width:0}
+
+/* rezumat */
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.kpi{background:var(--surface);padding:12px 16px;display:grid;gap:2px;min-width:0}
+.kpi .k{font-size:12px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.kpi .v{font-family:var(--f-display);font-weight:700;font-size:1.5rem;line-height:1.1}
+.kpi .s{font-size:12.5px;color:var(--muted)}
+.formats{display:grid;gap:6px}
+.fmt{display:grid;grid-template-columns:90px minmax(0,1fr) 120px;gap:10px;align-items:center;font-size:13px}
+.fmt .track{height:8px;background:var(--bar);border-radius:4px;position:relative}
+.fmt .track i{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:4px}
+.fmt .track::after{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--muted);opacity:.6}
+.fmt .n{color:var(--muted);text-align:right}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.panel h2{font-family:var(--f-display);font-stretch:115%;font-weight:700;font-size:1.05rem;margin:0 0 4px;text-wrap:balance}
+.panel .sub{font-size:13px;color:var(--muted);margin:0 0 12px;max-width:68ch}
+
+/* tiktok pe zile */
+.ttgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px 18px;margin-bottom:12px}
+.ttgrid div{display:grid;gap:0}
+.ttgrid .k{font-size:12px;color:var(--muted)}
+.ttgrid .v{font-family:var(--f-display);font-weight:700;font-size:1.25rem}
+.delta{font-size:12px}
+.spark{position:relative}
+.spark svg{display:block;width:100%;height:110px}
+.tip{position:absolute;top:0;pointer-events:none;background:var(--ink);color:var(--paper);font-size:12px;padding:4px 8px;border-radius:6px;white-space:nowrap;transform:translateX(-50%)}
+
+/* toolbar listă */
+.listhead{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between}
+.listhead h2{font-family:var(--f-display);font-stretch:115%;font-weight:700;font-size:1.25rem;margin:0}
+.list{display:grid;gap:8px}
+.row{background:var(--surface);border:1px solid var(--line);border-radius:10px;display:grid;grid-template-columns:70px minmax(0,1fr) 160px;overflow:hidden}
+.rank{font-family:var(--f-display);font-stretch:62%;font-weight:700;font-size:2.3rem;line-height:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-right:1px solid var(--line);padding:10px 0}
+.rank small{font-family:var(--f-mono);font-size:11px;font-weight:400;color:var(--muted);letter-spacing:0;text-align:center;line-height:1.3}
+.up{color:var(--good)!important}.down{color:var(--bad)!important}
+.body{padding:12px 16px;min-width:0;display:grid;gap:6px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:12px;color:var(--muted)}
+.pf{font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:11px;padding:1px 7px;border-radius:4px;border:1px solid currentColor}
+.pf.ig{color:var(--ig)}.pf.tt{color:var(--tt)}
+.tag{font-size:11px;padding:1px 7px;border-radius:4px;background:var(--bar);color:var(--ink)}
+.cap{margin:0;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cap a{color:inherit;text-decoration-color:var(--line);text-underline-offset:3px}
+.cap a:hover{text-decoration-color:var(--accent)}
+.metrics{display:flex;flex-wrap:wrap;gap:2px 16px;font-size:13px;color:var(--muted)}
+.metrics b{color:var(--ink);font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--bar)}
+.chip.pos{color:var(--good)}.chip.neg{color:var(--bad)}.chip.warn{color:var(--warn)}
+.score{padding:12px 16px;border-left:1px solid var(--line);display:flex;flex-direction:column;justify-content:center;gap:6px}
+.score .big{font-family:var(--f-display);font-weight:800;font-size:1.7rem;line-height:1}
+.score .big small{font-family:var(--f-body);font-size:12px;font-weight:400;color:var(--muted);margin-left:2px}
+.meter{height:6px;background:var(--bar);border-radius:3px;position:relative}
+.meter i{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:3px}
+.meter::after{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--muted);opacity:.6}
+.mult{font-size:12px;color:var(--muted)}
+.linkbtn{border:0;background:none;padding:0;color:var(--accent);cursor:pointer;font-size:13px;justify-self:start}
+.detail{grid-column:1/-1;border-top:1px dashed var(--line);padding:12px 16px 14px 86px;font-size:13px}
+.detail .full{margin:0 0 10px;color:var(--muted);max-width:75ch;overflow-wrap:anywhere}
+.tablewrap{overflow-x:auto}
+.detail table{border-collapse:collapse;width:100%;max-width:560px}
+.detail th,.detail td{text-align:right;padding:4px 10px;border-bottom:1px solid var(--line)}
+.detail th:first-child,.detail td:first-child{text-align:left;padding-left:0}
+.detail th{font-weight:500;color:var(--muted);font-size:12px}
+.detail p{margin:10px 0 0;color:var(--muted);max-width:68ch}
+@media (max-width:640px){
+  .row{grid-template-columns:52px minmax(0,1fr)}
+  .rank{font-size:1.7rem}
+  .score{grid-column:1/-1;border-left:0;border-top:1px solid var(--line);flex-direction:row;align-items:center;flex-wrap:wrap;gap:8px 14px}
+  .score .meter{flex:1 1 120px}
+  .detail{padding-left:16px}
+  .range{margin-left:0}
+  .fmt{grid-template-columns:72px minmax(0,1fr) auto}
+  .filters{position:static}
+  .fresh{text-align:left}
+}
+.more{justify-self:center}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:28px 20px;color:var(--muted)}
+.empty b{color:var(--ink)}
+
+.formula{font-family:var(--f-mono);font-size:12px;background:var(--paper);border-radius:6px;padding:10px 12px;line-height:1.7;overflow-wrap:anywhere}
+.formula em{font-style:normal;color:var(--accent)}
+.slider{display:grid;grid-template-columns:1fr auto;gap:2px 10px;margin-top:12px;font-size:14px}
+.slider output{font-family:var(--f-mono);font-size:13px;color:var(--accent)}
+.slider input{grid-column:1/-1;width:100%;accent-color:var(--accent)}
+.slider .hint{grid-column:1/-1;font-size:12px;color:var(--muted)}
+.help{font-size:12.5px;color:var(--muted);margin:10px 0 0}
+.help b{color:var(--ink);font-weight:500}
+.btn{border:1px solid var(--line);background:var(--surface);padding:7px 12px;border-radius:7px;cursor:pointer;font-size:14px;font-weight:500}
+.btn:hover{border-color:var(--ink)}
+.files{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:13px}
+.files li{display:grid;gap:1px;min-width:0}
+.files code{font-family:var(--f-mono);font-size:12px;overflow-wrap:anywhere}
+.files span{color:var(--muted)}
+.files .bad{color:var(--warn)}
+ol.steps{margin:6px 0 0;padding-left:20px;font-size:13px;display:grid;gap:4px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:8px;font-size:14px;max-width:min(560px,calc(100% - 32px));z-index:10}
+textarea{width:100%;min-height:80px;font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border-radius:6px;background:var(--paper);margin-top:8px}
+.loading{padding:40px 0;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.meter i,.fmt .track i{transition:width .3s ease}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Eficient <span>clasamentul postărilor</span></h1>
+      <p class="lede">Postările de Instagram și TikTok ordonate după cât de bine au performat față de ce e normal pentru contul lor, nu doar după vizualizări.</p>
+    </div>
+    <div class="fresh" id="fresh"></div>
+  </header>
+
+  <div class="filters" role="toolbar" aria-label="Filtre">
+    <div class="seg period" role="group" aria-label="Perioadă">
+      <button data-period="7">7 zile</button>
+      <button data-period="30">30 zile</button>
+      <button data-period="90">90 zile</button>
+      <button data-period="ytd" id="ytdBtn">De la 1 ianuarie</button>
+    </div>
+    <div class="seg" role="group" aria-label="Platformă">
+      <button data-pf="all">Toate</button>
+      <button data-pf="ig">Instagram</button>
+      <button data-pf="tt">TikTok</button>
+    </div>
+    <label class="sel" for="acc">Cont <select id="acc"></select></label>
+    <label class="sel" for="fmt">Format <select id="fmt"></select></label>
+    <span class="range" id="range"></span>
+  </div>
+
+  <div class="grid">
+    <main id="main"><p class="loading">Se încarcă datele…</p></main>
+
+    <aside>
+      <section class="panel">
+        <h2>Formula</h2>
+        <p class="sub">Fiecare postare e comparată cu mediana contului ei, pe toate postările din 2026. 50 = o postare tipică pentru cont.</p>
+        <div class="formula" id="formula"></div>
+        <div class="slider"><label for="w-c">Un comentariu valorează</label><output id="o-c"></output><input type="range" id="w-c" min="0" max="10" step="0.5"></div>
+        <div class="slider"><label for="w-s">O salvare valorează</label><output id="o-s"></output><input type="range" id="w-s" min="0" max="10" step="0.5"></div>
+        <div class="slider"><label for="w-sh">O distribuire valorează</label><output id="o-sh"></output><input type="range" id="w-sh" min="0" max="10" step="0.5"></div>
+        <div class="slider"><label for="w-f">Un urmăritor nou valorează</label><output id="o-f"></output><input type="range" id="w-f" min="0" max="20" step="1"><span class="hint">Doar Instagram raportează urmăritorii aduși de fiecare postare.</span></div>
+        <div class="slider"><label for="w-a">Implicare vs. reach</label><output id="o-a"></output><input type="range" id="w-a" min="0" max="1" step="0.05"><span class="hint">Spre dreapta contează mai mult cât de implicat a fost publicul; spre stânga, câți oameni au văzut postarea.</span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn" id="resetW">Revino la ponderile inițiale</button></div>
+        <p class="help">Valorile sunt raportate la un like (= 1). Postările cu puține vizualizări sunt trase spre media contului, ca un noroc pe 300 de views să nu ajungă pe primul loc. Ponderile schimbate aici se văd doar în browserul tău.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Date noi</h2>
+        <ol class="steps">
+          <li>Descarcă exportul (Meta Business Suite → Statistici → Conținut → Exportă date; TikTok Studio → Analize).</li>
+          <li>Pe GitHub, intră în folderul <b>instagram</b> sau <b>tiktok</b> → <b>Add file → Upload files</b> și trage fișierul CSV.</li>
+          <li>Apasă <b>Commit changes</b>. Site-ul se actualizează singur în 1–2 minute.</li>
+        </ol>
+        <p class="help">Poți urca exporturi care se suprapun. Aceeași postare apare o singură dată, cu cifrele cele mai noi.</p>
+        <h2 style="margin-top:16px">Fișiere citite</h2>
+        <ul class="files" id="files"></ul>
+      </section>
+    </aside>
+  </div>
+</div>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script>
+(function(){
+const DEF_W={c:3,s:4,sh:5,f:0,a:0.7};
+const PREF='eficient-prefs-v2';
+let prefs={period:'30',pf:'all',acc:'all',fmt:'all',sort:'score',w:{...DEF_W}};
+try{const p=JSON.parse(localStorage.getItem(PREF)||'null');if(p)prefs={...prefs,...p,w:{...DEF_W,...(p.w||{})}}}catch(e){}
+const savePrefs=()=>{try{localStorage.setItem(PREF,JSON.stringify(prefs))}catch(e){}};
+let DATA=null,shown=50,openId=null;
+const $=id=>document.getElementById(id);
+const nf=new Intl.NumberFormat('ro-RO');
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const PF={ig:'Instagram',tt:'TikTok'};
+const FMT={reel:'Reel',image:'Imagine',carousel:'Carusel',video:'Video',story:'Story'};
+const fmtName=t=>FMT[t]||(t?t[0].toUpperCase()+t.slice(1):'Altele');
+const NAMES={l:'Like-uri',cm:'Comentarii',s:'Salvări',sh:'Distribuiri',f:'Urmăritori noi'};
+const M=['l','cm','s','sh','f'];
+function short(n){n=+n||0;const a=Math.abs(n);if(a>=1e6)return (n/1e6).toFixed(a>=1e7?0:1).replace('.',',')+'M';if(a>=1e4)return Math.round(n/1e3)+'K';if(a>=1e3)return (n/1e3).toFixed(1).replace('.',',')+'K';return nf.format(n)}
+const fx=x=>'×'+(x>=10?x.toFixed(0):x>=0.1?x.toFixed(1):x.toFixed(2)).replace('.',',');
+const day=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
+const fdate=(d,y)=>d.toLocaleDateString('ro-RO',{day:'numeric',month:'short',...(y?{year:'numeric'}:{})});
+function median(a){const s=a.filter(Number.isFinite).sort((x,y)=>x-y),n=s.length;if(!n)return 0;return n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2}
+
+/* ---------- pregătire date ---------- */
+function prepare(raw){
+  const posts=raw.posts.map((p,i)=>({...p,id:'p'+i,date:p.d?new Date(p.d):null}));
+  // conturile cu puține postări (colaborări) intră într-un singur grup, ca mediana să aibă sens
+  const counts={};posts.forEach(p=>{const k=p.p+'|'+p.a;counts[k]=(counts[k]||0)+1});
+  posts.forEach(p=>{p.g=(counts[p.p+'|'+p.a]>=10&&p.a)?p.a:'__collab'});
+  return {...raw,posts,counts};
+}
+function score(posts,w){
+  const groups={};posts.forEach(p=>{(groups[p.p+'|'+p.g]=groups[p.p+'|'+p.g]||[]).push(p)});
+  for(const ps of Object.values(groups)){
+    ps.forEach(p=>{p.V=Math.max(p.v,1);p.W=p.l+w.c*p.cm+w.s*p.s+w.sh*p.sh+w.f*(p.f||0)});
+    const medV=median(ps.map(p=>p.V))||1,sumV=ps.reduce((a,p)=>a+p.V,0);
+    const prior=ps.reduce((a,p)=>a+p.W,0)/sumV,k=0.25*medV;
+    ps.forEach(p=>{p.er=(p.W+k*prior)/(p.V+k)});
+    const medER=median(ps.map(p=>p.er))||1e-9;
+    // media contului (total ÷ total), mai stabilă decât mediana când majoritatea postărilor au 0 salvări sau distribuiri
+    const rates={};M.forEach(m=>rates[m]=ps.reduce((a,p)=>a+(p[m]||0),0)/sumV*1000);
+    ps.forEach(p=>{
+      p.erIdx=Math.max(p.er/medER,1e-6);p.reachIdx=p.V/medV;
+      p.raw=w.a*Math.log(p.erIdx)+(1-w.a)*Math.log(p.reachIdx);
+      p.mult=Math.exp(p.raw);p.score=100/(1+Math.exp(-1.6*p.raw));
+      p.medRates=rates;p.medV=medV;p.n=ps.length;
+    });
+  }
+}
+
+/* ---------- perioada ---------- */
+function periodRange(per){
+  const today=day(new Date());
+  const end=new Date(today);end.setDate(end.getDate()+1); // exclusiv
+  let start;
+  if(per==='ytd')start=new Date(today.getFullYear(),0,1);
+  else{start=new Date(today);start.setDate(start.getDate()-(+per)+1)}
+  return {start,end,days:Math.round((end-start)/864e5)};
+}
+const inRange=(d,r)=>d&&d>=r.start&&d<r.end;
+
+/* ---------- interfață ---------- */
+function controls(){
+  document.querySelectorAll('[data-period]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.period===prefs.period));
+  document.querySelectorAll('[data-pf]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.pf===prefs.pf));
+  $('ytdBtn').textContent='De la 1 ianuarie '+new Date().getFullYear();
+  const w=prefs.w;
+  [['c','w-c','o-c'],['s','w-s','o-s'],['sh','w-sh','o-sh'],['f','w-f','o-f']].forEach(([k,i,o])=>{$(i).value=w[k];$(o).textContent=w[k]+' like-uri'});
+  $('w-a').value=w.a;$('o-a').textContent=Math.round(w.a*100)+' / '+Math.round((1-w.a)*100);
+  $('formula').innerHTML=`implicare = like + <em>${w.c}</em>·com + <em>${w.s}</em>·salv + <em>${w.sh}</em>·dist${w.f?` + <em>${w.f}</em>·urm`:''}<br>rată = implicare ÷ vizualizări<br>eficiență = rată<sup>${w.a.toFixed(2).replace('.',',')}</sup> × reach<sup>${(1-w.a).toFixed(2).replace('.',',')}</sup><br><span style="color:var(--muted)">(ambele relative la mediana contului)</span>`;
+}
+function fillSelects(){
+  const pf=prefs.pf;
+  const accs={};DATA.posts.filter(p=>pf==='all'||p.p===pf).forEach(p=>{accs[p.g]=(accs[p.g]||0)+1});
+  const opts=Object.entries(accs).sort((a,b)=>(a[0]==='__collab')-(b[0]==='__collab')||b[1]-a[1]);
+  if(prefs.acc!=='all'&&!accs[prefs.acc])prefs.acc='all';
+  $('acc').innerHTML=`<option value="all">Toate conturile</option>`+opts.map(([a,n])=>`<option value="${esc(a)}">${a==='__collab'?'Colaborări':'@'+esc(a)} (${n})</option>`).join('');
+  $('acc').value=prefs.acc;
+  const fm={};DATA.posts.filter(p=>(pf==='all'||p.p===pf)&&(prefs.acc==='all'||p.g===prefs.acc)).forEach(p=>{fm[p.t]=(fm[p.t]||0)+1});
+  if(prefs.fmt!=='all'&&!fm[prefs.fmt])prefs.fmt='all';
+  $('fmt').innerHTML=`<option value="all">Toate</option>`+Object.entries(fm).sort((a,b)=>b[1]-a[1]).map(([t])=>`<option value="${esc(t)}">${fmtName(t)}</option>`).join('');
+  $('fmt').value=prefs.fmt;
+}
+
+function chips(p,genDate){
+  const c=[];
+  const ages=genDate&&p.date?(genDate-p.date)/864e5:99;
+  if(ages<3)c.push('<span class="chip warn">Publicată recent, cifrele încă cresc</span>');
+  if(/giveaway|concurs|c[âa][șs]tig|tragere(a)? la sor/i.test(p.c||''))c.push('<span class="chip warn">Concurs: comentariile sunt cerute în mecanică</span>');
+  const ratios=M.filter(m=>m!=='f'||p.f).map(m=>[m,p.medRates[m]>0?(p[m]||0)/p.V*1000/p.medRates[m]:((p[m]||0)>0?3:1)]).sort((a,b)=>b[1]-a[1]);
+  ratios.slice(0,2).forEach(([m,r])=>{if(r>=1.8)c.push(`<span class="chip pos">${NAMES[m]} ${fx(r)} față de medie</span>`)});
+  if(p.reachIdx>=2&&p.erIdx<0.7)c.push('<span class="chip neg">Reach mare, implicare slabă</span>');
+  else if(p.erIdx>=1.8&&p.reachIdx<0.7)c.push('<span class="chip pos">Implicare mare, reach mic: merită promovată</span>');
+  return c.join('');
+}
+
+function ttDaily(r){
+  const daily=(DATA.daily&&DATA.daily.tt)||[];
+  if(!daily.length||prefs.pf==='ig')return '';
+  const iso=d=>d.toISOString().slice(0,10);
+  const loc=d=>new Date(d.getTime()-d.getTimezoneOffset()*6e4);
+  const s=iso(loc(r.start)),e=iso(loc(r.end));
+  const prevStart=new Date(r.start);prevStart.setDate(prevStart.getDate()-r.days);const ps=iso(loc(prevStart));
+  const cur=daily.filter(x=>x.d>=s&&x.d<e),prev=daily.filter(x=>x.d>=ps&&x.d<s);
+  if(!cur.length)return `<section class="panel"><h2>TikTok, pe zile</h2><p class="sub">Fișierul de TikTok nu are zile în perioada aleasă. Ultima zi din fișier: ${fdate(new Date(daily[daily.length-1].d),true)}.</p></section>`;
+  const sum=(a,k)=>Math.max(0,a.reduce((t,x)=>t+(x[k]||0),0));
+  const er=a=>{const v=sum(a,'v');return v?(sum(a,'l')+sum(a,'c')+sum(a,'sh'))/v*100:0};
+  const prevOk=prev.length>=Math.min(r.days,cur.length)*0.9;
+  const delta=(a,b)=>{if(!prevOk||!b)return '';const d=(a-b)/b*100;return `<span class="delta ${d>=0?'up':'down'}">${d>=0?'+':''}${d.toFixed(0)}% față de perioada anterioară</span>`};
+  const cells=[['Vizualizări video',sum(cur,'v'),sum(prev,'v')],['Like-uri',sum(cur,'l'),sum(prev,'l')],['Comentarii',sum(cur,'c'),sum(prev,'c')],['Distribuiri',sum(cur,'sh'),sum(prev,'sh')]];
+  const e1=er(cur),e0=er(prev);
+  return `<section class="panel"><h2>TikTok, totaluri pe cont</h2>
+   <p class="sub">Din fișierul Overview, care are doar cifre pe zi. Pentru clasamentul fiecărui video e nevoie de exportul pe postări.</p>
+   <div class="ttgrid">${cells.map(([k,a,b])=>`<div><span class="k">${k}</span><span class="v num">${short(a)}</span>${delta(a,b)}</div>`).join('')}
+   <div><span class="k">Rată de implicare</span><span class="v num">${e1.toFixed(2).replace('.',',')}%</span>${prevOk&&e0?`<span class="delta ${e1>=e0?'up':'down'}">${e1>=e0?'+':''}${(e1-e0).toFixed(2).replace('.',',')} pp față de perioada anterioară</span>`:''}</div></div>
+   <div class="spark" id="spark" data-series='${esc(JSON.stringify(cur.map(x=>[x.d,x.v])))}'></div></section>`;
+}
+function drawSpark(){
+  const el=$('spark');if(!el)return;
+  const pts=JSON.parse(el.dataset.series);if(pts.length<2){el.remove();return}
+  const W=600,H=110,pad={l:4,r:4,t:22,b:18};
+  const max=Math.max(...pts.map(p=>p[1]))||1;
+  const x=i=>pad.l+i*(W-pad.l-pad.r)/(pts.length-1),y=v=>pad.t+(1-v/max)*(H-pad.t-pad.b);
+  const line=pts.map((p,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(p[1]).toFixed(1)}`).join('');
+  const area=line+`L${x(pts.length-1).toFixed(1)},${H-pad.b}L${x(0).toFixed(1)},${H-pad.b}Z`;
+  const mi=pts.reduce((b,p,i)=>p[1]>pts[b][1]?i:b,0);
+  const lab=d=>fdate(new Date(d+'T00:00'));
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Vizualizări TikTok pe zi">
+    <line x1="${pad.l}" x2="${W-pad.r}" y1="${H-pad.b}" y2="${H-pad.b}" stroke="var(--line)" stroke-width="1" vector-effect="non-scaling-stroke"/>
+    <path d="${area}" fill="var(--accent)" fill-opacity=".12"/>
+    <path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+    <line id="cross" y1="${pad.t-6}" y2="${H-pad.b}" stroke="var(--muted)" stroke-width="1" vector-effect="non-scaling-stroke" visibility="hidden"/>
+  </svg><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:-14px"><span>${lab(pts[0][0])}</span><span>vizualizări pe zi · maxim ${short(pts[mi][1])} pe ${lab(pts[mi][0])}</span><span>${lab(pts[pts.length-1][0])}</span></div><div class="tip" hidden></div>`;
+  const svg=el.querySelector('svg'),tip=el.querySelector('.tip'),cross=el.querySelector('#cross');
+  const move=e=>{const b=svg.getBoundingClientRect();const cx=((e.touches?e.touches[0].clientX:e.clientX)-b.left)/b.width*W;
+    const i=Math.max(0,Math.min(pts.length-1,Math.round((cx-pad.l)/((W-pad.l-pad.r)/(pts.length-1)))));
+    cross.setAttribute('x1',x(i));cross.setAttribute('x2',x(i));cross.setAttribute('visibility','visible');
+    tip.hidden=false;tip.textContent=`${lab(pts[i][0])}: ${nf.format(pts[i][1])} vizualizări`;
+    tip.style.left=Math.min(Math.max(x(i)/W*b.width,80),b.width-80)+'px'};
+  svg.addEventListener('pointermove',move);svg.addEventListener('pointerleave',()=>{tip.hidden=true;cross.setAttribute('visibility','hidden')});
+}
+
+function render(){
+  controls();fillSelects();savePrefs();
+  const r=periodRange(prefs.period);
+  const genDate=DATA.generated?new Date(DATA.generated):new Date();
+  $('range').textContent=`${fdate(r.start,true)} – ${fdate(new Date(r.end-864e5),true)}`;
+  score(DATA.posts,prefs.w);
+  const base=DATA.posts.filter(p=>(prefs.pf==='all'||p.p===prefs.pf)&&(prefs.acc==='all'||p.g===prefs.acc));
+  const inPeriod=base.filter(p=>inRange(p.date,r));
+  const rows=inPeriod.filter(p=>prefs.fmt==='all'||p.t===prefs.fmt);
+  const byViews=[...rows].sort((a,b)=>b.v-a.v),vRank=new Map(byViews.map((p,i)=>[p.id,i+1]));
+  const byScore=[...rows].sort((a,b)=>b.score-a.score),sRank=new Map(byScore.map((p,i)=>[p.id,i+1]));
+  const list=prefs.sort==='views'?byViews:prefs.sort==='low'?[...byScore].reverse():byScore;
+  window.__export={list,sRank,vRank};
+
+  let html='';
+  // rezumat
+  if(rows.length){
+    const totV=rows.reduce((a,p)=>a+p.v,0),medS=median(rows.map(p=>p.score));
+    const best=byScore[0];
+    const strong=rows.filter(p=>p.score>=60).length;
+    html+=`<div class="summary">
+      <div class="kpi"><span class="k">Postări</span><span class="v num">${nf.format(rows.length)}</span><span class="s">${[...new Set(rows.map(p=>p.p))].map(x=>PF[x]).join(' + ')}</span></div>
+      <div class="kpi"><span class="k">Vizualizări</span><span class="v num">${short(totV)}</span><span class="s">mediana ${short(median(rows.map(p=>p.v)))} pe postare</span></div>
+      <div class="kpi"><span class="k">Scor median</span><span class="v num">${Math.round(medS)}</span><span class="s">${medS>=50?'peste':'sub'} nivelul obișnuit (50)</span></div>
+      <div class="kpi"><span class="k">Peste medie clar</span><span class="v num">${strong}</span><span class="s">postări cu scor 60+</span></div>
+    </div>`;
+    const byFmt={};inPeriod.forEach(p=>{(byFmt[p.t]=byFmt[p.t]||[]).push(p.score)});
+    const fl=Object.entries(byFmt).filter(([,a])=>a.length>=2).sort((a,b)=>median(b[1])-median(a[1]));
+    if(fl.length>1)html+=`<section class="panel"><h2>Ce format a mers</h2><p class="sub">Scorul median pe format în perioada aleasă. Linia din mijloc e 50, adică o postare tipică.</p><div class="formats">${fl.map(([t,a])=>{const m=median(a);return `<div class="fmt"><span>${fmtName(t)}</span><span class="track"><i style="width:${m.toFixed(1)}%"></i></span><span class="n num">${Math.round(m)} · ${a.length} post.</span></div>`}).join('')}</div></section>`;
+  }
+  html+=ttDaily(r);
+
+  html+=`<div class="listhead"><h2>Clasament</h2><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <div class="seg" role="group" aria-label="Ordonare"><button data-sort="score" aria-pressed="${prefs.sort==='score'}">Cele mai eficiente</button><button data-sort="low" aria-pressed="${prefs.sort==='low'}">Cele mai slabe</button><button data-sort="views" aria-pressed="${prefs.sort==='views'}">După views</button></div>
+    <button class="btn" id="copy">Copiază pentru Excel</button></div></div>`;
+
+  if(!rows.length){
+    const ttOnly=prefs.pf==='tt'&&!DATA.posts.some(p=>p.p==='tt');
+    const last=DATA.posts.filter(p=>p.date).map(p=>p.date).sort((a,b)=>b-a)[0];
+    html+=`<div class="empty">${ttOnly
+      ?`<b>Încă nu există un export TikTok pe fiecare video.</b><br>Fișierul din folderul tiktok are doar totaluri pe zi. În TikTok Studio pe calculator, la Analize → Conținut, descarcă datele pe postări și urcă CSV-ul în folderul <b>tiktok</b>. Clasamentul apare aici automat.`
+      :`<b>Nicio postare în perioada aleasă.</b><br>${last?`Cea mai nouă postare din date e din ${fdate(last,true)}. Urcă un export mai nou ca să vezi ultimele zile.`:'Urcă un export în folderul instagram sau tiktok.'}`}</div>`;
+  }else{
+    html+='<div class="list" id="list">'+list.slice(0,shown).map(p=>rowHtml(p,sRank,vRank,genDate)).join('')+'</div>';
+    if(list.length>shown)html+=`<button class="btn more" id="more">Arată încă ${Math.min(50,list.length-shown)} din ${list.length-shown} rămase</button>`;
+  }
+  $('main').innerHTML=html;
+  drawSpark();
+}
+
+function rowHtml(p,sRank,vRank,genDate){
+  const r=prefs.sort==='views'?vRank.get(p.id):sRank.get(p.id);
+  const vr=vRank.get(p.id),sr=sRank.get(p.id),d=vr-sr;
+  const diff=prefs.sort==='views'?`<small>eficiență #${sr}</small>`:(d>0?`<small class="up">↑${d} vs views</small>`:d<0?`<small class="down">↓${-d} vs views</small>`:'<small>= views</small>');
+  const capTxt=p.c||'(fără descriere)';
+  const cap=p.u?`<a href="${esc(p.u)}" target="_blank" rel="noopener">${esc(capTxt)}</a>`:esc(capTxt);
+  const open=openId===p.id;
+  const acc=p.a?`@${esc(p.a)}`:'';
+  const tbl=[['v','Vizualizări'],...M.filter(m=>m!=='f'||p.p==='ig').map(m=>[m,NAMES[m]])].map(([m,name])=>{
+    if(m==='v')return `<tr><td>${name}</td><td class="num">${nf.format(p.v)}</td><td class="num">–</td><td class="num">${nf.format(Math.round(p.medV))}</td><td class="num ${p.reachIdx>=1.2?'up':p.reachIdx<=0.8?'down':''}">${fx(p.reachIdx)}</td></tr>`;
+    const rate=(p[m]||0)/p.V*1000,med=p.medRates[m],ratio=med>0?rate/med:null,cls=ratio==null?'':ratio>=1.2?'up':ratio<=0.8?'down':'';
+    return `<tr><td>${name}</td><td class="num">${nf.format(p[m]||0)}</td><td class="num">${rate.toFixed(1).replace('.',',')}</td><td class="num">${med.toFixed(1).replace('.',',')}</td><td class="num ${cls}">${ratio==null?'–':fx(ratio)}</td></tr>`}).join('');
+  const grp=p.g==='__collab'?'colaborările':'@'+esc(p.g);
+  return `<article class="row">
+    <div class="rank num">${r}${diff}</div>
+    <div class="body">
+      <div class="meta"><span class="pf ${p.p}">${PF[p.p]}</span><span class="tag">${fmtName(p.t)}</span>${acc?`<span>${acc}</span>`:''}<span>${p.date?fdate(p.date,true):''}</span></div>
+      <p class="cap">${cap}</p>
+      <div class="metrics num"><span><b>${short(p.v)}</b> views</span>${p.r?`<span><b>${short(p.r)}</b> reach</span>`:''}<span><b>${short(p.l)}</b> like</span><span><b>${short(p.cm)}</b> com</span><span><b>${short(p.s)}</b> salv</span><span><b>${short(p.sh)}</b> dist</span>${p.f?`<span><b>${short(p.f)}</b> urm. noi</span>`:''}</div>
+      <div class="chips">${chips(p,genDate)}</div>
+      <button class="linkbtn" data-open="${p.id}" aria-expanded="${open}">${open?'Ascunde detaliile':'De ce acest scor?'}</button>
+    </div>
+    <div class="score"><div class="big num">${Math.round(p.score)}<small>/100</small></div><div class="meter" title="Linia din mijloc = postare tipică (50)"><i style="width:${p.score.toFixed(1)}%"></i></div><div class="mult">${fx(p.mult)} față de o postare tipică</div></div>
+    ${open?`<div class="detail"><div class="tablewrap"><table><thead><tr><th>Metrică</th><th>Total</th><th>la 1.000 views</th><th>media contului</th><th>raport</th></tr></thead><tbody>${tbl}</tbody></table></div>
+    <p>Comparată cu ${p.n} postări ${PF[p.p]} de pe ${grp}. Implicarea ponderată e <b>${fx(p.erIdx)}</b> față de mediană, iar reach-ul <b>${fx(p.reachIdx)}</b>. Combinate ${Math.round(prefs.w.a*100)}/${Math.round((1-prefs.w.a)*100)} dau eficiența ${fx(p.mult)}, adică scorul ${Math.round(p.score)}.</p></div>`:''}
+  </article>`;
+}
+
+/* ---------- evenimente ---------- */
+let tt;function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,4500)}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b||!DATA)return;
+  if(b.dataset.period){prefs.period=b.dataset.period;shown=50;render()}
+  else if(b.dataset.pf){prefs.pf=b.dataset.pf;shown=50;render()}
+  else if(b.dataset.sort){prefs.sort=b.dataset.sort;shown=50;render()}
+  else if(b.dataset.open){openId=openId===b.dataset.open?null:b.dataset.open;render()}
+  else if(b.id==='more'){shown+=50;render()}
+  else if(b.id==='resetW'){prefs.w={...DEF_W};render();toast('Ponderile au revenit la valorile inițiale.')}
+  else if(b.id==='copy')copyList();
+});
+$('acc').addEventListener('change',e=>{prefs.acc=e.target.value;shown=50;render()});
+$('fmt').addEventListener('change',e=>{prefs.fmt=e.target.value;shown=50;render()});
+['c','s','sh','f','a'].forEach(k=>$('w-'+k).addEventListener('input',e=>{prefs.w[k]=+e.target.value;render()}));
+function copyList(){
+  const {list,sRank,vRank}=window.__export||{};if(!list||!list.length)return toast('Nu e nimic de copiat în perioada aleasă.');
+  const tsv=['Loc eficiență\tLoc views\tPlatformă\tCont\tFormat\tData\tDescriere\tScor\tViews\tReach\tLike\tComentarii\tSalvări\tDistribuiri\tLink',
+    ...list.map(p=>[sRank.get(p.id),vRank.get(p.id),PF[p.p],p.a,fmtName(p.t),p.date?p.date.toISOString().slice(0,10):'',(p.c||'').replace(/\s+/g,' '),Math.round(p.score),p.v,p.r||'',p.l,p.cm,p.s,p.sh,p.u].join('\t'))].join('\n');
+  const fb=()=>{let t=document.getElementById('cpfb');if(!t){t=document.createElement('textarea');t.id='cpfb';t.setAttribute('aria-label','Clasament de copiat');document.querySelector('.listhead').after(t)}t.value=tsv;t.focus();t.select();toast('Textul e selectat. Copiază-l cu Ctrl+C / Cmd+C.')};
+  try{navigator.clipboard.writeText(tsv).then(()=>toast(`Am copiat ${list.length} postări. Lipește-le în Excel sau Google Sheets.`),fb)}catch(e){fb()}
+}
+
+function boot(raw){
+  DATA=prepare(raw);
+  const g=raw.generated?new Date(raw.generated):null;
+  const last=DATA.posts.filter(p=>p.date).map(p=>p.date).sort((a,b)=>b-a)[0];
+  $('fresh').innerHTML=`<span>Date actualizate: <b>${g?g.toLocaleString('ro-RO',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'–'}</b></span><span>${nf.format(DATA.posts.length)} postări${last?` · cea mai nouă din ${fdate(last,true)}`:''}</span>`;
+  $('files').innerHTML=(raw.files||[]).map(f=>`<li><code>${esc(f.file)}</code><span class="${f.rows?'':'bad'}">${f.kind==='pe postare'?`${nf.format(f.rows)} postări`:f.kind==='pe zi'?`${nf.format(f.rows)} zile, totaluri de cont`:esc(f.kind)}${f.note?` · <span class="bad">${esc(f.note)}</span>`:''}</span></li>`).join('')||'<li><span>Niciun fișier încă.</span></li>';
+  render();
+}
+if(window.__DATA__)boot(window.__DATA__);
+else fetch('data.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(boot)
+  .catch(()=>{$('main').innerHTML='<div class="empty"><b>Nu am putut încărca datele.</b><br>Reîncarcă pagina. Dacă problema rămâne, verifică pe GitHub, în tabul Actions, dacă ultima actualizare a reușit.</div>'});
+})();
+</script>
+</body>
+</html>
