@@ -147,6 +147,7 @@ main{display:grid;gap:18px;min-width:0}
 .slider .hint{grid-column:1/-1;font-size:12px;color:var(--muted)}
 .help{font-size:12.5px;color:var(--muted);margin:10px 0 0}
 .help b{color:var(--ink);font-weight:500}
+.steps a,.help a{color:var(--accent)}
 .btn{border:1px solid var(--line);background:var(--surface);padding:7px 12px;border-radius:7px;cursor:pointer;font-size:14px;font-weight:500}
 .btn:hover{border-color:var(--ink)}
 .files{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:13px}
@@ -208,7 +209,7 @@ textarea{width:100%;min-height:80px;font-family:var(--f-mono);font-size:12px;bor
       <section class="panel">
         <h2>Date noi</h2>
         <ol class="steps">
-          <li>Descarcă exportul (Meta Business Suite → Statistici → Conținut → Exportă date; TikTok Studio → Analize).</li>
+          <li><b>Instagram:</b> Meta Business Suite → Statistici → Conținut → Exportă date (CSV).<br><b>TikTok:</b> salvează pagina de postări ca fișier HAR și transformă-l în CSV cu <a href="tiktok.html">convertorul TikTok</a>.</li>
           <li>Pe GitHub, intră în folderul <b>instagram</b> sau <b>tiktok</b> → <b>Add file → Upload files</b> și trage fișierul CSV.</li>
           <li>Apasă <b>Commit changes</b>. Site-ul se actualizează singur în 1–2 minute.</li>
         </ol>
@@ -233,7 +234,7 @@ const $=id=>document.getElementById(id);
 const nf=new Intl.NumberFormat('ro-RO');
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const PF={ig:'Instagram',tt:'TikTok'};
-const FMT={reel:'Reel',image:'Imagine',carousel:'Carusel',video:'Video',story:'Story'};
+const FMT={reel:'Reel',image:'Imagine',carousel:'Carusel',video:'Video',photo:'Foto',story:'Story'};
 const fmtName=t=>FMT[t]||(t?t[0].toUpperCase()+t.slice(1):'Altele');
 const NAMES={l:'Like-uri',cm:'Comentarii',s:'Salvări',sh:'Distribuiri',f:'Urmăritori noi'};
 const M=['l','cm','s','sh','f'];
@@ -248,7 +249,8 @@ function prepare(raw){
   const posts=raw.posts.map((p,i)=>({...p,id:'p'+i,date:p.d?new Date(p.d):null}));
   // conturile cu puține postări (colaborări) intră într-un singur grup, ca mediana să aibă sens
   const counts={};posts.forEach(p=>{const k=p.p+'|'+p.a;counts[k]=(counts[k]||0)+1});
-  posts.forEach(p=>{p.g=(counts[p.p+'|'+p.a]>=10&&p.a)?p.a:'__collab'});
+  // fără nume de cont (ex. exportul TikTok) = contul principal al platformei
+  posts.forEach(p=>{p.g=!p.a?'__own_'+p.p:counts[p.p+'|'+p.a]>=10?p.a:'__collab'});
   return {...raw,posts,counts};
 }
 function score(posts,w){
@@ -295,8 +297,9 @@ function fillSelects(){
   const pf=prefs.pf;
   const accs={};DATA.posts.filter(p=>pf==='all'||p.p===pf).forEach(p=>{accs[p.g]=(accs[p.g]||0)+1});
   const opts=Object.entries(accs).sort((a,b)=>(a[0]==='__collab')-(b[0]==='__collab')||b[1]-a[1]);
+  const gName=a=>a==='__collab'?'Colaborări':a.startsWith('__own_')?'Contul '+PF[a.slice(6)]:'@'+esc(a);
   if(prefs.acc!=='all'&&!accs[prefs.acc])prefs.acc='all';
-  $('acc').innerHTML=`<option value="all">Toate conturile</option>`+opts.map(([a,n])=>`<option value="${esc(a)}">${a==='__collab'?'Colaborări':'@'+esc(a)} (${n})</option>`).join('');
+  $('acc').innerHTML=`<option value="all">Toate conturile</option>`+opts.map(([a,n])=>`<option value="${esc(a)}">${gName(a)} (${n})</option>`).join('');
   $('acc').value=prefs.acc;
   const fm={};DATA.posts.filter(p=>(pf==='all'||p.p===pf)&&(prefs.acc==='all'||p.g===prefs.acc)).forEach(p=>{fm[p.t]=(fm[p.t]||0)+1});
   if(prefs.fmt!=='all'&&!fm[prefs.fmt])prefs.fmt='all';
@@ -332,7 +335,7 @@ function ttDaily(r){
   const cells=[['Vizualizări video',sum(cur,'v'),sum(prev,'v')],['Like-uri',sum(cur,'l'),sum(prev,'l')],['Comentarii',sum(cur,'c'),sum(prev,'c')],['Distribuiri',sum(cur,'sh'),sum(prev,'sh')]];
   const e1=er(cur),e0=er(prev);
   return `<section class="panel"><h2>TikTok, totaluri pe cont</h2>
-   <p class="sub">Din fișierul Overview, care are doar cifre pe zi. Pentru clasamentul fiecărui video e nevoie de exportul pe postări.</p>
+   <p class="sub">${DATA.posts.some(p=>p.p==='tt')?'Totalurile zilnice ale contului din fișierul Overview. Includ și vizualizările videoclipurilor mai vechi, deci sunt mai mari decât suma postărilor din perioadă.':'Din fișierul Overview, care are doar cifre pe zi. Pentru clasamentul fiecărui video, folosește <a href="tiktok.html">convertorul TikTok</a>.'}</p>
    <div class="ttgrid">${cells.map(([k,a,b])=>`<div><span class="k">${k}</span><span class="v num">${short(a)}</span>${delta(a,b)}</div>`).join('')}
    <div><span class="k">Rată de implicare</span><span class="v num">${e1.toFixed(2).replace('.',',')}%</span>${prevOk&&e0?`<span class="delta ${e1>=e0?'up':'down'}">${e1>=e0?'+':''}${(e1-e0).toFixed(2).replace('.',',')} pp față de perioada anterioară</span>`:''}</div></div>
    <div class="spark" id="spark" data-series='${esc(JSON.stringify(cur.map(x=>[x.d,x.v])))}'></div></section>`;
@@ -424,7 +427,7 @@ function rowHtml(p,sRank,vRank,genDate){
     if(m==='v')return `<tr><td>${name}</td><td class="num">${nf.format(p.v)}</td><td class="num">–</td><td class="num">${nf.format(Math.round(p.medV))}</td><td class="num ${p.reachIdx>=1.2?'up':p.reachIdx<=0.8?'down':''}">${fx(p.reachIdx)}</td></tr>`;
     const rate=(p[m]||0)/p.V*1000,med=p.medRates[m],ratio=med>0?rate/med:null,cls=ratio==null?'':ratio>=1.2?'up':ratio<=0.8?'down':'';
     return `<tr><td>${name}</td><td class="num">${nf.format(p[m]||0)}</td><td class="num">${rate.toFixed(1).replace('.',',')}</td><td class="num">${med.toFixed(1).replace('.',',')}</td><td class="num ${cls}">${ratio==null?'–':fx(ratio)}</td></tr>`}).join('');
-  const grp=p.g==='__collab'?'colaborările':'@'+esc(p.g);
+  const grp=p.g==='__collab'?'colaborările':p.g.startsWith('__own_')?'contul principal':'@'+esc(p.g);
   return `<article class="row">
     <div class="rank num">${r}${diff}</div>
     <div class="body">

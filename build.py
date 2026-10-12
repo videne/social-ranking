@@ -225,7 +225,8 @@ def main():
     }
     OUT.mkdir(exist_ok=True)
     (OUT / "data.json").write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    shutil.copy(ROOT / "index.html", OUT / "index.html")
+    for page in ROOT.glob("*.html"):
+        shutil.copy(page, OUT / page.name)
     for f in report:
         print(f'{f["file"]}: {f["kind"]}, {f["rows"]} rânduri {f.get("note", "")}')
     print(f'{len(data["posts"])} postări, {sum(len(v) for v in data["daily"].values())} zile -> site/data.json')

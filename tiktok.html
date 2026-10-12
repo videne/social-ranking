@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Convertor TikTok HAR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: o singură coloană de citit — pașii, zona de încărcare, rezultatul. Aceleași tokenuri ca aplicația principală. */
+:root{
+  --paper:#F2F5F7; --surface:#FFFFFF; --ink:#132029; --muted:#596875; --line:#D8DFE5;
+  --accent:#2445D3; --accent-soft:#E2E8FC; --tt:#0B807C; --good:#1B7646; --bad:#B23A2C; --warn:#9A6200;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0E151B; --surface:#16202A; --ink:#E5ECF1; --muted:#93A2AF; --line:#283541;
+  --accent:#8FA3FF; --accent-soft:#1E2950; --tt:#3BC6C0; --good:#5CC98B; --bad:#F2806F; --warn:#E5B04F; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0E151B; --surface:#16202A; --ink:#E5ECF1; --muted:#93A2AF; --line:#283541;
+  --accent:#8FA3FF; --accent-soft:#1E2950; --tt:#3BC6C0; --good:#5CC98B; --bad:#F2806F; --warn:#E5B04F; color-scheme:dark}
+*{box-sizing:border-box}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55}
+[hidden]{display:none!important}
+.wrap{max-width:760px;margin:0 auto;padding-inline:20px;padding-block:28px 64px;display:grid;gap:20px}
+a{color:var(--accent)}
+h1{font-family:var(--f-display);font-stretch:125%;font-weight:800;font-size:clamp(1.8rem,5vw,2.6rem);line-height:1;margin:0;text-wrap:balance}
+h1 span{color:var(--tt)}
+h2{font-family:var(--f-display);font-stretch:115%;font-weight:700;font-size:1.1rem;margin:0 0 6px}
+.lede{color:var(--muted);margin:8px 0 0;max-width:62ch}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 20px;min-width:0}
+ol{margin:0;padding-left:22px;display:grid;gap:6px}
+li b{font-weight:600}
+code{font-family:var(--f-mono);font-size:13px;background:var(--paper);padding:1px 5px;border-radius:4px}
+.drop{border:2px dashed var(--line);border-radius:10px;padding:28px 20px;text-align:center;background:var(--surface);cursor:pointer;display:grid;gap:6px;justify-items:center}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop input{position:absolute;width:1px;height:1px;opacity:0}
+.drop label{cursor:pointer;font-weight:600;color:var(--accent)}
+.note{font-size:13px;color:var(--muted)}
+.btn{border:1px solid var(--ink);background:var(--ink);color:var(--paper);padding:9px 14px;border-radius:7px;cursor:pointer;font:inherit;font-weight:500;text-decoration:none;display:inline-block}
+.res{display:grid;gap:12px}
+.ok{color:var(--good);font-weight:600}.err{color:var(--bad);font-weight:600}.warn{color:var(--warn)}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{color:var(--muted);font-weight:500}
+th:nth-child(2),td:nth-child(2){text-align:left;white-space:normal;min-width:220px}
+td{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+td:nth-child(2){font-family:var(--f-body)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div>
+    <p class="note"><a href="./">← Înapoi la clasament</a></p>
+    <h1>Convertor <span>TikTok</span></h1>
+    <p class="lede">TikTok Studio nu exportă cifrele pe fiecare video. Pagina asta le scoate dintr-un fișier HAR salvat din browser și îți dă un CSV curat pentru folderul <b>tiktok</b>.</p>
+  </div>
+
+  <section class="panel">
+    <h2>1. Salvează fișierul HAR</h2>
+    <ol>
+      <li>În TikTok Studio, deschide pagina <b>Posts</b> (lista cu Views, Likes, Comments).</li>
+      <li>Apasă <b>F12</b> și alege tabul <b>Network</b> („Rețea”). Apasă iconița coș de gunoi ca să golești lista.</li>
+      <li>Apasă <b>F5</b>, apoi derulează lista de postări până jos. Dacă apar pagini sau „Load more”, treci prin toate până la cea mai veche postare de care ai nevoie. TikTok trimite câte 50 de videoclipuri o dată.</li>
+      <li>Click dreapta pe orice rând din Network → <b>Save All As HAR</b> (Firefox) sau iconița săgeată în jos <b>Export HAR</b> (Chrome).</li>
+    </ol>
+  </section>
+
+  <section class="panel">
+    <h2>2. Încarcă-l aici</h2>
+    <div class="drop" id="drop">
+      <input type="file" id="file" accept=".har,.json,application/json">
+      <label for="file">Alege fișierul .har</label>
+      <span class="note">sau trage-l aici</span>
+    </div>
+    <p class="note" style="margin:10px 0 0">Fișierul e citit doar în browserul tău și nu pleacă nicăieri. Nu urca fișierul HAR pe GitHub: conține sesiunea ta de TikTok. Urcă doar CSV-ul de mai jos.</p>
+  </section>
+
+  <section class="panel res" id="res" hidden></section>
+
+  <section class="panel">
+    <h2>3. Urcă CSV-ul</h2>
+    <p style="margin:0">Pe GitHub, în folderul <b>tiktok</b> → <b>Add file → Upload files</b> → trage CSV-ul → <b>Commit changes</b>. Clasamentul se actualizează în 1–2 minute. Exporturile care se suprapun nu dublează videoclipurile.</p>
+  </section>
+</div>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const nf=new Intl.NumberFormat('ro-RO');
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const local=ts=>{const d=new Date(ts*1000);return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`};
+const csvCell=v=>{v=String(v??'');return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+let url=null;
+
+function decode(c){
+  let t=c&&c.text||'';
+  if(c&&c.encoding==='base64'){try{t=new TextDecoder().decode(Uint8Array.from(atob(t),ch=>ch.charCodeAt(0)))}catch(e){t=''}}
+  return t;
+}
+function convert(text){
+  let har;try{har=JSON.parse(text)}catch(e){return fail('Fișierul nu e un HAR valid. Salvează-l din nou din tabul Network.')}
+  const entries=(har.log&&har.log.entries)||[];
+  const items=new Map();let pages=0;
+  for(const e of entries){
+    if(!/item_list/.test(e.request&&e.request.url||''))continue;
+    let d;try{d=JSON.parse(decode(e.response&&e.response.content))}catch(err){continue}
+    const list=d&&d.item_list;if(!Array.isArray(list))continue;pages++;
+    for(const it of list)if(it&&it.item_id&&'play_count' in it)items.set(String(it.item_id),it);
+  }
+  if(!items.size)return fail(entries.length
+    ?'Nu am găsit lista de videoclipuri în fișier. Verifică să fi salvat HAR-ul de pe pagina Posts din TikTok Studio, după ce ai apăsat F5 cu tabul Network deschis.'
+    :'Fișierul HAR e gol. Ține tabul Network deschis, apasă F5 pe pagina de postări, apoi salvează din nou.');
+  const rows=[...items.values()].sort((a,b)=>b.create_time-a.create_time);
+  const head=['Video ID','Post time','Post type','Description','Duration (sec)','Views','Likes','Comments','Shares','Saves'];
+  const body=rows.map(i=>[i.item_id,local(+i.create_time),String(i.item_type)==='2'?'photo':'video',String(i.desc||'').replace(/\s+/g,' ').trim(),Math.round((+i.duration||0)/1000),+i.play_count||0,+i.like_count||0,+i.comment_count||0,+i.share_count||0,+i.favorite_count||0]);
+  const csv='﻿'+[head,...body].map(r=>r.map(csvCell).join(',')).join('\n');
+  const first=body[body.length-1][1].slice(0,10),last=body[0][1].slice(0,10);
+  if(url)URL.revokeObjectURL(url);
+  url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  const name=`tiktok-videos-${first}_${last}.csv`;
+  $('res').hidden=false;
+  $('res').innerHTML=`<p style="margin:0"><span class="ok">Am găsit ${nf.format(rows.length)} videoclipuri</span>, publicate între ${first} și ${last}.</p>
+    ${rows.length%50===0?`<p class="note warn" style="margin:0">Numărul e multiplu de 50. Probabil mai sunt videoclipuri mai vechi neîncărcate. Dacă ai nevoie de ele, derulează mai departe în TikTok Studio și salvează HAR-ul din nou.</p>`:''}
+    <div><a class="btn" id="dl" href="${url}" download="${name}">Descarcă ${esc(name)}</a></div>
+    <div class="tablewrap"><table><thead><tr><th>Data</th><th>Descriere</th><th>Views</th><th>Like</th><th>Com.</th><th>Distr.</th><th>Salvări</th></tr></thead><tbody>
+    ${body.slice(0,8).map(r=>`<tr><td>${r[1].slice(0,10)}</td><td>${esc(r[3].slice(0,70))}${r[3].length>70?'…':''}</td><td>${nf.format(r[5])}</td><td>${nf.format(r[6])}</td><td>${nf.format(r[7])}</td><td>${nf.format(r[8])}</td><td>${nf.format(r[9])}</td></tr>`).join('')}
+    </tbody></table></div>${body.length>8?`<p class="note" style="margin:0">Primele 8 din ${nf.format(body.length)}.</p>`:''}`;
+}
+function fail(msg){$('res').hidden=false;$('res').innerHTML=`<p class="err" style="margin:0">${esc(msg)}</p>`}
+function read(f){if(!f)return;const r=new FileReader();r.onload=()=>convert(r.result);r.onerror=()=>fail('Nu am putut citi fișierul.');r.readAsText(f)}
+$('file').addEventListener('change',e=>read(e.target.files[0]));
+const drop=$('drop');
+drop.addEventListener('click',e=>{if(e.target.tagName!=='LABEL'&&e.target.tagName!=='INPUT')$('file').click()});
+['dragenter','dragover'].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add('over')}));
+['dragleave','drop'].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove('over')}));
+drop.addEventListener('drop',e=>read(e.dataTransfer.files[0]));
+})();
+</script>
+</body>
+</html>
